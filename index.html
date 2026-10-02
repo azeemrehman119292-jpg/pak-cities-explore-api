@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pakistani City & Country Explorer</title>
+  <style>
+    /* Dark Theme Base Styling */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .dashboard-container {
+      width: 100%;
+      max-width: 850px;
+      background: #1e293b;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      border: 1px solid #334155;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      color: #38bdf8;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+
+    /* City Selectors */
+    .city-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+
+    .city-buttons button {
+      background-color: #334155;
+      color: #f8fafc;
+      border: 1px solid #475569;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .city-buttons button:hover {
+      background-color: #38bdf8;
+      color: #0f172a;
+      border-color: #38bdf8;
+    }
+
+    /* Grid Layout for API Data Cards */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #0f172a;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .card h3 {
+      font-size: 1.1rem;
+      color: #38bdf8;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 6px;
+      margin-bottom: 6px;
+    }
+
+    .card p {
+      font-size: 0.95rem;
+      color: #cbd5e1;
+    }
+
+    .flag-img {
+      width: 60px;
+      height: 40px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #475569;
+      margin-top: 4px;
+    }
+
+    .map-link {
+      display: inline-block;
+      margin-top: 8px;
+      color: #38bdf8;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .map-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Spinner Animation */
+    .loader {
+      display: none;
+      width: 48px;
+      height: 48px;
+      border: 5px solid #334155;
+      border-bottom-color: #38bdf8;
+      border-radius: 50%;
+      margin: 20px auto;
+      animation: rotation 1s linear infinite;
+    }
+
+    @keyframes rotation {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Error Message Box */
+    .error-card {
+      display: none;
+      background-color: #7f1d1d;
+      color: #fca5a5;
+      padding: 14px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard-container">
+    <header class="header">
+      <h1>Multi-API City & Country Explorer</h1>
+      <p>Click a Pakistani city to fetch combined live weather and country data simultaneously.</p>
+    </header>
+
+    <!-- City Selection Buttons -->
+    <div class="city-buttons">
+      <button onclick="fetchCityData('Faisalabad', 31.4504, 73.1350)">Faisalabad</button>
+      <button onclick="fetchCityData('Lahore', 31.5204, 74.3587)">Lahore</button>
+      <button onclick="fetchCityData('Karachi', 24.8607, 67.0011)">Karachi</button>
+      <button onclick="fetchCityData('Islamabad', 33.6844, 73.0479)">Islamabad</button>
+      <button onclick="fetchCityData('Peshawar', 34.0151, 71.5249)">Peshawar</button>
+      <button onclick="fetchCityData('Quetta', 30.1798, 66.9750)">Quetta</button>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loader" class="loader"></div>
+
+    <!-- Error Banner -->
+    <div id="error-message" class="error-card"></div>
+
+    <!-- Results Display Grid -->
+    <main id="dashboard-grid" class="dashboard-grid hidden">
+      
+      <!-- Live Weather Card (API 1: Open-Meteo) -->
+      <div class="card">
+        <h3>Live Weather 🌤️</h3>
+        <p><strong>Selected City:</strong> <span id="city-title">--</span></p>
+        <p><strong>Temperature:</strong> <span id="temp">--</span> °C</p>
+        <p><strong>Humidity:</strong> <span id="humidity">--</span> %</p>
+        <p><strong>Wind Speed:</strong> <span id="wind">--</span> km/h</p>
+      </div>
+
+      <!-- Country Info Card (API 2: RestCountries) -->
+      <div class="card">
+        <h3>Country Info 🇵🇰</h3>
+        <p><strong>Country:</strong> <span id="country-name">--</span></p>
+        <p><strong>Flag:</strong></p>
+        <img id="country-flag" class="flag-img" src="" alt="Flag" />
+        <p><strong>Population:</strong> <span id="population">--</span></p>
+        <p><strong>Languages:</strong> <span id="languages">--</span></p>
+        <p><strong>Currency:</strong> <span id="currency">--</span></p>
+      </div>
+
+      <!-- Region & Capital Card (API 2: RestCountries) -->
+      <div class="card">
+        <h3>Region & Location 📍</h3>
+        <p><strong>Capital:</strong> <span id="capital">--</span></p>
+        <p><strong>Region:</strong> <span id="region">--</span></p>
+        <p><strong>Subregion:</strong> <span id="subregion">--</span></p>
+        <a id="map-link" class="map-link" href="#" target="_blank">Open Google Maps 🗺️</a>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    async function fetchCityData(cityName, lat, lon) {
+      const loader = document.getElementById('loader');
+      const errorCard = document.getElementById('error-message');
+      const grid = document.getElementById('dashboard-grid');
+
+      // Reset state
+      loader.style.display = 'block';
+      errorCard.style.display = 'none';
+      grid.classList.add('hidden');
+
+      // Weather API (Open-Meteo) & Country API (RestCountries by country code "pak")
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m`;
+      const countryUrl = `https://restcountries.com/v3.1/alpha/pak`;
+
+      try {
+        // Fetch both APIs in parallel
+        const [weatherRes, countryRes] = await Promise.all([
+          fetch(weatherUrl),
+          fetch(countryUrl)
+        ]);
+
+        if (!weatherRes.ok) throw new Error("Weather API request failed.");
+        if (!countryRes.ok) throw new Error("Country API request failed.");
+
+        const weatherData = await weatherRes.json();
+        const countryRaw = await countryRes.json();
+        
+        // Handle array or object response from RestCountries alpha endpoint
+        const countryData = Array.isArray(countryRaw) ? countryRaw[0] : countryRaw;
+
+        // Parse Weather Details
+        document.getElementById('city-title').innerText = cityName;
+        document.getElementById('temp').innerText = weatherData.current.temperature_2m;
+        document.getElementById('humidity').innerText = weatherData.current.relative_humidity_2m;
+        document.getElementById('wind').innerText = weatherData.current.wind_speed_10m;
+
+        // Parse Country Details
+        document.getElementById('country-name').innerText = countryData.name.common;
+        document.getElementById('country-flag').src = countryData.flags.png;
+        document.getElementById('population').innerText = countryData.population.toLocaleString();
+        
+        // Parse Languages & Currency
+        const langs = Object.values(countryData.languages || {}).join(', ');
+        document.getElementById('languages').innerText = langs || 'N/A';
+
+        const currencies = Object.values(countryData.currencies || {})
+          .map(c => `${c.name} (${c.symbol})`)
+          .join(', ');
+        document.getElementById('currency').innerText = currencies || 'N/A';
+
+        // Parse Capital, Region, and Google Maps Link
+        document.getElementById('capital').innerText = countryData.capital ? countryData.capital[0] : 'N/A';
+        document.getElementById('region').innerText = countryData.region;
+        document.getElementById('subregion').innerText = countryData.subregion;
+        document.getElementById('map-link').href = countryData.maps.googleMaps;
+
+        // Display results
+        grid.classList.remove('hidden');
+
+      } catch (err) {
+        errorCard.innerText = 'Error: ' + err.message;
+        errorCard.style.display = 'block';
+      } finally {
+        loader.style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>
